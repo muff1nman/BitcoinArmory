@@ -6085,11 +6085,7 @@ TEST_F(BlockUtilsBare, CorruptedBlock)
    BtcWallet wlt2;
    wlt2.addScrAddress(scrAddrD_);
    
-   TheBDM.doInitialSyncOnLoad(); 
-   TheBDM.scanBlockchainForTx(wlt);
-   TheBDM.scanBlockchainForTx(wlt2);
-
-   // corrupt blk_5A
+   // add a corrupt blk_5A
    {
       const std::string src = "../reorgTest/blk_5A.dat";
       const std::string dst = blk0dat_;
@@ -6106,22 +6102,29 @@ TEST_F(BlockUtilsBare, CorruptedBlock)
       os.write((char*)temp.getPtr()+120, srcsz-100-20); // erase 20 bytes
       os.close();
    }
+   
+   TheBDM.doInitialSyncOnLoad(); 
+   TheBDM.scanBlockchainForTx(wlt);
+   TheBDM.scanBlockchainForTx(wlt2);
 
    TheBDM.readBlkFileUpdate();
+   const vector<BinaryData> missing = TheBDM.missingBlockHashes();
    
+   EXPECT_EQ(missing.size(), 1);
+   EXPECT_EQ(missing[0].toHexStr(), "6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000");
 
    TheBDM.scanBlockchainForTx(wlt);
    TheBDM.scanBlockchainForTx(wlt2);
 
    ScrAddrObj * scrobj;
    scrobj = &wlt.getScrAddrObjByKey(scrAddrA_);
-   EXPECT_EQ(scrobj->getFullBalance(),100*COIN);
+   EXPECT_EQ(scrobj->getFullBalance(), 0*COIN);
    scrobj = &wlt.getScrAddrObjByKey(scrAddrB_);
    EXPECT_EQ(scrobj->getFullBalance(), 0*COIN);
    //scrobj = &wlt.getScrAddrObjByKey(scrAddrD_);
    //EXPECT_EQ(scrobj->getFullBalance(),140*COIN);
 
-   EXPECT_EQ(wlt.getFullBalance(), 150*COIN);
+   EXPECT_EQ(wlt.getFullBalance(), 0*COIN);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -4221,6 +4221,7 @@ uint32_t BlockDataManager_LevelDB::readBlkFileUpdate(void)
    }
    else
    {
+      const BinaryData nulls( (const uint8_t*)"\0\0\0\0", 4);
       // For post-0.8, the filesize will almost always be larger (padded).
       // Keep checking where we expect to see magic bytes, we know we're 
       // at the end if we see zero-bytes instead.
@@ -4231,13 +4232,24 @@ uint32_t BlockDataManager_LevelDB::readBlkFileUpdate(void)
          is.seekg(endOfNewLastBlock, ios::beg);
          is.read((char*)fourBytes.getPtr(), 4);
 
-         if(fourBytes != MagicBytes_)
+         if (fourBytes == nulls)
             break;
+         if(fourBytes != MagicBytes_)
+         {
+            LOGERR << "readBlkFileUpdate didn't find a block header where expected";
+            if (!scanFor(is, MagicBytes_.getPtr(), MagicBytes_.getSize()))
+            {
+               LOGERR << "No more blocks were foun in this file";
+               break;
+            }
+            
+            LOGERR << "Next block header found at offset " << uint64_t(is.tellg())-4;
+         }
          else
          {
             is.read((char*)fourBytes.getPtr(), 4);
-            endOfNewLastBlock += READ_UINT32_LE((fourBytes.getPtr())) + 8;
          }
+         endOfNewLastBlock += READ_UINT32_LE((fourBytes.getPtr())) + 8;
       }
 
       currBlkBytesToRead = endOfNewLastBlock - endOfLastBlockByte_;
