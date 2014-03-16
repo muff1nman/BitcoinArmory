@@ -11192,7 +11192,12 @@ class SatoshiDaemonManager(object):
       if not isASCII(self.bitconf['rpcpassword']):
          LOGERROR('Non-ASCII character in bitcoin.conf (rpcpassword)!')
 
-      self.bitconf['host'] = '127.0.0.1'
+      if not self.bitconf.has_key('rpcconnect'):
+          LOGDEBUG('No rpcconnect: using localhost')
+          self.bitconf['host'] = '127.0.0.1'
+      else:
+          LOGDEBUG('Using host for rpc: ' + self.bitconf['rpcconnect']
+          self.bitconf['host'] = self.bitconf['rpcconnect']
       
 
 
